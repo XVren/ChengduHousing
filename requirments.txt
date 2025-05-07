@@ -1,0 +1,11 @@
+requests==2.31.0
+beautifulsoup4==4.12.2
+pandas==2.2.3
+numpy==2.1.0
+matplotlib==3.10.1
+seaborn==0.13.2
+plotly==6.0.1
+lxml==4.9.3
+scikit-learn==1.6.1
+scipy==1.12.0
+tqdm==4.66.3
