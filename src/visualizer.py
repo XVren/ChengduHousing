@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-链家成都二手房数据可视化模块
-用于生成各类分析图表和交互式可视化
-"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,12 +14,65 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.ticker as ticker
 from adjustText import adjust_text
 import textwrap
+import matplotlib.font_manager as fm
 
 # 导入自定义绘图工具
-from src.utils.plot_utils import PlotStyler, get_optimized_colormap
+# from src.utils.plot_utils import PlotStyler, get_optimized_colormap
+# 假设这里有对应的工具类，如果没有，我们会在下方定义
 
-# 忽略特定警告
-warnings.filterwarnings("ignore", category=UserWarning)
+
+class PlotStyler:
+    def __init__(self, theme="light"):
+        self.theme = theme
+        
+    def save_figure(self, fig, filename, formats=["png"]):
+        os.makedirs("data/visualizations", exist_ok=True)
+        for fmt in formats:
+            path = f"data/visualizations/{filename}.{fmt}"
+            if isinstance(fig, plt.Figure):
+                fig.savefig(path, bbox_inches='tight', dpi=150)
+            else:  # Plotly figure
+                if fmt == "html":
+                    fig.write_html(path)
+                elif fmt == "png":
+                    fig.write_image(path)
+                elif fmt == "json":
+                    fig.write_json(path)
+        
+    def create_plotly_figure(self, title="", x_title="", y_title=""):
+        fig = go.Figure()
+        # 设置基础布局
+        fig.update_layout(
+            title=dict(
+                text=title,
+                font=dict(family="Arial, SimHei", size=16),
+                x=0.5
+            ),
+            xaxis=dict(
+                title=dict(
+                    text=x_title,
+                    font=dict(family="Arial, SimHei", size=14)
+                ),
+                tickfont=dict(family="Arial, SimHei", size=12)
+            ),
+            yaxis=dict(
+                title=dict(
+                    text=y_title,
+                    font=dict(family="Arial, SimHei", size=14)
+                ),
+                tickfont=dict(family="Arial, SimHei", size=12)
+            ),
+            template='plotly_white' if self.theme == 'light' else 'plotly_dark',
+            font=dict(family="Arial, SimHei", size=12)
+        )
+        return fig
+
+
+def get_optimized_colormap(n_colors, cmap_name):
+    """生成优化的颜色映射"""
+    cmap = plt.cm.get_cmap(cmap_name, n_colors)
+    colors = [cmap(i) for i in range(n_colors)]
+    return colors
 
 
 class ChengduHousingVisualizer:
@@ -38,9 +86,9 @@ class ChengduHousingVisualizer:
         # 初始化样式处理器
         self.styler = PlotStyler(theme=theme)
 
-        # 设置中文字体支持
-        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'Arial']
-        plt.rcParams['axes.unicode_minus'] = False
+        # ====== 修复中文显示问题 ======
+        # 查找系统中的中文字体
+        self._setup_chinese_fonts()
 
         # 设置 DPI 和图表整体美观参数
         plt.rcParams['figure.dpi'] = 100
@@ -75,6 +123,50 @@ class ChengduHousingVisualizer:
             "diverging": "coolwarm"
         }
 
+    def _setup_chinese_fonts(self):
+        """设置中文字体支持"""
+        # 常见的中文字体列表
+        chinese_fonts = ['SimHei', 'Microsoft YaHei', 'SimSun', 'KaiTi', 
+                         'FangSong', 'STXihei', 'STKaiti', 'STSong', 'STFangsong',
+                         'STZhongsong', 'Source Han Sans CN', 'Source Han Serif CN',
+                         'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'Noto Sans CJK SC', 
+                         'Noto Serif CJK SC', 'Droid Sans Fallback']
+        
+        # 查找系统中可用的中文字体
+        font_found = False
+        for font_name in chinese_fonts:
+            try:
+                # 尝试找到字体
+                font_path = fm.findfont(fm.FontProperties(family=font_name))
+                if os.path.exists(font_path) and 'ttf' in font_path.lower():
+                    print(f"找到可用的中文字体: {font_name} 路径: {font_path}")
+                    # 设置为matplotlib默认字体
+                    plt.rcParams['font.family'] = ['sans-serif']
+                    plt.rcParams['font.sans-serif'] = [font_name, 'Arial', 'DejaVu Sans']
+                    plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
+                    font_found = True
+                    break
+            except Exception as e:
+                continue
+        
+        if not font_found:
+            print("警告：未找到可用的中文字体，尝试使用内置方法...")
+            # 如果找不到系统字体，尝试其他方法
+            try:
+                # 尝试使用matplotlib默认的中文支持
+                plt.rcParams['font.family'] = ['sans-serif']
+                plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans', 'Bitstream Vera Sans', 'Arial Unicode MS']
+                plt.rcParams['axes.unicode_minus'] = False
+                
+                # 测试中文显示
+                fig = plt.figure(figsize=(1, 1))
+                plt.text(0.5, 0.5, '测试中文', ha='center', va='center')
+                plt.close(fig)
+                print("内置中文字体设置成功")
+            except Exception as e:
+                print(f"中文字体设置失败: {e}")
+                print("建议手动安装中文字体后重试")
+    
     def wrap_labels(self, axis, width, break_long_words=False):
         """
         对坐标轴标签进行自动换行处理
@@ -331,7 +423,7 @@ class ChengduHousingVisualizer:
             ),
             hoverlabel=dict(
                 font_size=12,
-                font_family="Arial"
+                font_family="Arial, SimHei"
             ),
             legend=dict(
                 orientation="h",
@@ -620,7 +712,7 @@ class ChengduHousingVisualizer:
                       [f"{val:,.0f}" for val in district_pivot['std']],
                       [f"{val:.2f}" for val in district_pivot['cv']]],
                 texttemplate="%{text}",
-                textfont={"size": 11},
+                textfont={"size": 11, "family": "Arial, SimHei"},
                 hovertemplate="区域: %{x}<br>指标: %{y}<br>值: %{text}<extra></extra>"
             ))
 
@@ -639,7 +731,7 @@ class ChengduHousingVisualizer:
 
             # 保存交互式图表
             self.styler.save_figure(fig, "district_price_metrics_interactive", formats=["html"])
-
+            
     def create_structural_analysis_plots(self, df):
         """
         创建结构分析可视化
@@ -901,7 +993,7 @@ class ChengduHousingVisualizer:
 
                 # 保存交互式图表
                 self.styler.save_figure(fig, "layout_price_comparison_interactive", formats=["html"])
-
+                
         # 3. 卧室数量与价格关系图 - 改进版
         if 'bedrooms' in df.columns and 'price_per_sqm' in df.columns:
             # 过滤掉缺失值
@@ -1045,7 +1137,7 @@ class ChengduHousingVisualizer:
 
                 # 保存交互式图表
                 self.styler.save_figure(fig, "bedrooms_price_area_interactive", formats=["html"])
-
+                
         # 4. 面积分布直方图 - 改进版
         if 'area' in df.columns:
             area_data = df['area'].dropna()
@@ -1216,10 +1308,6 @@ class ChengduHousingVisualizer:
         # 限制刻度数量
         plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins=8))
         plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(nbins=8))
-
-        plt.tight_layout(pad=2.0)
-        self.styler.save_figure(plt.gcf(), "market_segmentation", formats=["png"])
-        plt.close()
 
         # 2. 使用Plotly创建交互式市场细分图 - 改进版
         if 'bedrooms' in cluster_features:
@@ -1549,7 +1637,7 @@ class ChengduHousingVisualizer:
 
         # 保存图表
         self.styler.save_figure(fig, "market_segments_comparison", formats=["html"])
-
+        
     def create_heatmap(self, df, value_column='price_per_sqm',
                        title="成都二手房价格热力图", colorscale="Viridis"):
         """
@@ -1620,7 +1708,7 @@ class ChengduHousingVisualizer:
             margin=dict(l=0, r=0, t=50, b=0),  # 减小边距以最大化地图区域
             hoverlabel=dict(
                 font_size=12,
-                font_family="Arial"
+                font_family="Arial, SimHei"
             )
         )
 
@@ -1674,7 +1762,7 @@ class ChengduHousingVisualizer:
 
         if 'total_price' in valid_df.columns:
             hover_data['total_price'] = True
-
+            
         fig = px.scatter_mapbox(
             valid_df,
             lat="lat",
@@ -1703,7 +1791,7 @@ class ChengduHousingVisualizer:
             ),
             hoverlabel=dict(
                 font_size=12,
-                font_family="Arial"
+                font_family="Arial, SimHei"
             )
         )
 
@@ -1813,24 +1901,6 @@ class ChengduHousingVisualizer:
                     row=1, col=2
                 )
 
-                # 添加趋势线
-                z = np.polyfit(area_price_df['area'], area_price_df['price_per_sqm'], 1)
-                p = np.poly1d(z)
-                x_range = np.linspace(area_price_df['area'].min(), area_price_df['area'].max(), 100)
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=x_range,
-                        y=p(x_range),
-                        mode='lines',
-                        line=dict(color='red', width=2),
-                        name='趋势线',
-                        showlegend=False,
-                        hovertemplate='面积: %{x:.1f}㎡<br>预测单价: %{y:,.0f}元/㎡<extra></extra>'
-                    ),
-                    row=1, col=2
-                )
-
         # 3. 户型价格对比
         if 'layout' in df.columns and 'price_per_sqm' in df.columns:
             # 获取前5个最常见户型
@@ -1914,7 +1984,7 @@ class ChengduHousingVisualizer:
             margin=dict(l=60, r=50, t=100, b=60),
             hoverlabel=dict(
                 font_size=12,
-                font_family="Arial"
+                font_family="Arial, SimHei"
             )
         )
 
@@ -2034,3 +2104,21 @@ if __name__ == "__main__":
 
     # 创建可视化
     visualizer.create_all_visualizations(df)
+
+                # 添加趋势线
+                z = np.polyfit(area_price_df['area'], area_price_df['price_per_sqm'], 1)
+                p = np.poly1d(z)
+                x_range = np.linspace(area_price_df['area'].min(), area_price_df['area'].max(), 100)
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=x_range,
+                        y=p(x_range),
+                        mode='lines',
+                        line=dict(color='red', width=2),
+                        name='趋势线',
+                        showlegend=False,
+                        hovertemplate='面积: %{x:.1f}㎡<br>预测单价: %{y:,.0f}元/㎡<extra></extra>'
+                    ),
+                    row=1, col=2
+                )
