@@ -1,7 +1,7 @@
 # 链家成都二手房数据分析系统
 
 ## 项目简介
-本项目是一个成都二手房数据分析系统，用于爬取、清洗、分析和可视化链家网上的成都二手房数据，特别关注房价的空间结构分析。
+本项目是一个成都二手房数据分析系统，用于爬取、清洗、分析和可视化**链家网**上的成都二手房数据，特别关注房价的空间结构分析。
 
 ## 功能特点
 - 数据爬取：从链家网抓取成都二手房数据
@@ -19,8 +19,8 @@
 ## 安装方法
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/lianjia-chengdu-housing.git
-cd lianjia-chengdu-housing
+git clone https://github.com/XVren/ChengduHousing.git
+cd ChengduHousing
 
 # 创建虚拟环境（可选）
 python -m venv .venv
@@ -66,7 +66,7 @@ lianjia_chengdu_housing/
 - 分析报告: 生成的JSON文件包含详细统计指标
 
 ## 更新记录
--2025/5/9: 更新了可视化函数与主函数
+- 2025/5/9: 更新了可视化函数与主函数
 - 2025/5/8：更新配置文件
 - 2025/5/7: 解决可视化中文显示问题
 - 2025/5/6: 重构项目结构，优化可视化模块
